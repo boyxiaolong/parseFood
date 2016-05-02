@@ -96,3 +96,5 @@ ENV/
 .idea/parseFood.iml
 
 waimai_chaoren_data.txt
+
+waimai_chaoren_json_data.txt

@@ -2,6 +2,7 @@
 import requests
 import bs4
 import json
+import re
 
 save_file = open("waimai_chaoren_json_data.txt", 'w')
 
@@ -33,12 +34,23 @@ for div in mydivs:
             tmpOneMap = {}
             oneSoupItemName = oneSoupItem.find("div", {"class":"meun-item-name"})
             oneSoupItemPrice = oneSoupItem.find("span", {"class":"price"})
+            sellPrice = 0
+            if len(oneSoupItemPrice.get_text()) > 0:
+                sellPrices = re.findall("\d+\.\d+", oneSoupItemPrice.get_text())
+                if len(sellPrices) > 0:
+                    sellPrice = float(sellPrices[0])
             oneSoupItemSellnum = oneSoupItem.find("span", {"class": "fr"})
+            sellNum = 0
+            if len(oneSoupItemSellnum.get_text()) > 0:
+                sellNums = re.findall('\d+', oneSoupItemSellnum.get_text())
+                if len(sellNums) > 0:
+                    sellNum = int(sellNums[0])
             tmpOneMap["name"] = oneSoupItemName.get_text()
-            tmpOneMap["price"] = oneSoupItemPrice.get_text()
-            tmpOneMap["sellNum"] = oneSoupItemSellnum.get_text()
+            tmpOneMap["price"] = sellPrice
+            tmpOneMap["sellNum"] = sellNum
             allFoods.append(tmpOneMap)
         tmpMap["restrantFoods"] = allFoods
         encodedjson = json.dumps(tmpMap)
+        print(encodedjson)
         save_file.write(encodedjson)
 save_file.close()
