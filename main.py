@@ -38,8 +38,8 @@ for url in urls:
             tmpTotalSellNumVec = get_num_vec_from_str(tmpTotalSell.get_text())
             if len(tmpTotalSellNumVec) > 0:
                 tmpTotalSell = int(tmpTotalSellNumVec[0])
-
-        print(tmpName, deliveryBegin, deliveryMoney, tmpClasses.get_text(), tmpTotalSell)
+        else:
+            tmpTotalSell = 10
 
         tmpUrl = div.find('a', href=True)
         if tmpUrl is not None:
