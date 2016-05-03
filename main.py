@@ -1,23 +1,29 @@
 # -*- coding: utf-8 -*-
 import requests
 import bs4
-import json
+import simplejson as json
 import re
+import codecs
+import os
 
 def get_num_vec_from_str(str):
     return re.findall('\d+', str)
 
-save_file = open("waimai_chaoren_json_data.txt", 'w')
+save_file = codecs.open("waimai_chaoren_json_data.txt", 'w', 'utf-8')
 ##软件园 高新区 桐梓林
 urls = ["http://waimaichaoren.com/restaurants/21886761/"
        , "http://waimaichaoren.com/restaurants/21876902/"
        , "http://waimaichaoren.com/restaurants/21876614/"]
-
+save_file.write('[')
 is_already_save_all = False
+max_dict_len = 4
+
 for url in urls:
     resp = requests.get(url)
     soup = bs4.BeautifulSoup(resp.text)
     mydivs = soup.findAll("div", { "class" : "restaurant-introduce fl" })
+
+    div_count = 1
     for div in mydivs:
         tmpOneRestaunt = div.find('h3', {'class':'ellipsis'})
         if tmpOneRestaunt is None:
@@ -51,19 +57,21 @@ for url in urls:
         oneRest = requests.get(oneRestatantUrl)
         oneSoup = bs4.BeautifulSoup(oneRest.text).find_all("ul", {"class":"clearfix menu-group menu-group-img menu-first-load"})
 
-        tmpMap = {}
         tmpNameVec = tmpName.split(' ')
 
         if len(tmpNameVec) >= 2:
             tmpName = tmpNameVec[1]
 
+        tmpMap = {}
         tmpMap["restrantName"] = tmpName
         tmpMap["deliveryBegin"] = deliveryBegin
         tmpMap["deliveryMoney"] = deliveryMoney
         tmpMap["classes"] = tmpClasses.get_text()
         tmpMap["totalSell"] = tmpTotalSell
-
+        tmpMap["index"] = div_count
         allFoods = []
+        count = 1
+        dict_len = len(oneSoup)
         for oneSoupItem in oneSoup:
             tmpOneMap = {}
             oneSoupItemName = oneSoupItem.find("div", {"class":"meun-item-name"})
@@ -82,8 +90,16 @@ for url in urls:
             tmpOneMap["name"] = oneSoupItemName.get_text()
             tmpOneMap["price"] = sellPrice
             tmpOneMap["sellNum"] = sellNum
+            tmpMap["index"] = count
+            count = count + 1
             allFoods.append(tmpOneMap)
+            if len(allFoods) >= max_dict_len:
+                break
         tmpMap["restrantFoods"] = allFoods
-        encodedjson = json.dumps(tmpMap)
-        save_file.write(encodedjson)
+        json_str = json.dumps(tmpMap, ensure_ascii=False)
+        save_file.write(json_str)
+        save_file.write(",")
+save_file.seek(-1, os.SEEK_END)
+save_file.truncate()
+save_file.write(']')
 save_file.close()
