@@ -4,31 +4,65 @@ import bs4
 import json
 import re
 
+def get_num_vec_from_str(str):
+    return re.findall('\d+', str)
+
 save_file = open("waimai_chaoren_json_data.txt", 'w')
+##软件园 高新区 桐梓林
+urls = ["http://waimaichaoren.com/restaurants/21886761/"
+       , "http://waimaichaoren.com/restaurants/21876902/"
+       , "http://waimaichaoren.com/restaurants/21876614/"]
 
-url = "http://waimaichaoren.com/restaurants/21886761/"
-resp = requests.get(url)
-soup = bs4.BeautifulSoup(resp.text)
-##get all
+is_already_save_all = False
+for url in urls:
+    resp = requests.get(url)
+    soup = bs4.BeautifulSoup(resp.text)
+    mydivs = soup.findAll("div", { "class" : "restaurant-introduce fl" })
+    for div in mydivs:
+        tmpOneRestaunt = div.find('h3', {'class':'ellipsis'})
+        if tmpOneRestaunt is None:
+            continue
 
-mydivs = soup.findAll("div", { "class" : "clearfix restaurant-food" })
-for div in mydivs:
-    tmp = div.findAll('li')
-    for tmpClass in tmp:
-        print(tmpClass.get_text())
+        tmpName = tmpOneRestaunt.get_text()
+        tmpDelivery = div.find('p')
+        tmpClasses = div.find('p', attrs = {'class':'fl'})
+        tmpTotalSell = div.find('dt', attrs={'class':'fl ellipsis'})
 
-##get current area restants name
-print("get current area restants name: ")
+        if tmpDelivery is not None:
+            tmpDeliveryVec = get_num_vec_from_str(tmpDelivery.get_text())
+            if len(tmpDeliveryVec) == 2:
+                deliveryBegin = int(tmpDeliveryVec[0])
+                deliveryMoney = int(tmpDeliveryVec[1])
 
-mydivs = soup.findAll("div", { "class" : "restaurant-introduce fl" })
-for div in mydivs:
-    tmp = div.findAll('h3')
-    for tmpClass in tmp:
-        oneRestatantUrl = "http://waimaichaoren.com" + tmpClass.find('a', href=True).get('href')
+        if tmpTotalSell is not None:
+            tmpTotalSellNumVec = get_num_vec_from_str(tmpTotalSell.get_text())
+            if len(tmpTotalSellNumVec) > 0:
+                tmpTotalSell = int(tmpTotalSellNumVec[0])
+
+        print(tmpName, deliveryBegin, deliveryMoney, tmpClasses.get_text(), tmpTotalSell)
+
+        tmpUrl = div.find('a', href=True)
+        if tmpUrl is not None:
+            tmpUrl = tmpUrl.get('href')
+        else:
+            continue
+
+        oneRestatantUrl = "http://waimaichaoren.com" + tmpUrl
         oneRest = requests.get(oneRestatantUrl)
         oneSoup = bs4.BeautifulSoup(oneRest.text).find_all("ul", {"class":"clearfix menu-group menu-group-img menu-first-load"})
+
         tmpMap = {}
-        tmpMap["restrantName"] = tmpClass.get_text()
+        tmpNameVec = tmpName.split(' ')
+
+        if len(tmpNameVec) >= 2:
+            tmpName = tmpNameVec[1]
+
+        tmpMap["restrantName"] = tmpName
+        tmpMap["deliveryBegin"] = deliveryBegin
+        tmpMap["deliveryMoney"] = deliveryMoney
+        tmpMap["classes"] = tmpClasses.get_text()
+        tmpMap["totalSell"] = tmpTotalSell
+
         allFoods = []
         for oneSoupItem in oneSoup:
             tmpOneMap = {}
@@ -42,7 +76,7 @@ for div in mydivs:
             oneSoupItemSellnum = oneSoupItem.find("span", {"class": "fr"})
             sellNum = 0
             if len(oneSoupItemSellnum.get_text()) > 0:
-                sellNums = re.findall('\d+', oneSoupItemSellnum.get_text())
+                sellNums = get_num_vec_from_str(oneSoupItemSellnum.get_text())
                 if len(sellNums) > 0:
                     sellNum = int(sellNums[0])
             tmpOneMap["name"] = oneSoupItemName.get_text()
@@ -51,6 +85,5 @@ for div in mydivs:
             allFoods.append(tmpOneMap)
         tmpMap["restrantFoods"] = allFoods
         encodedjson = json.dumps(tmpMap)
-        print(encodedjson)
         save_file.write(encodedjson)
 save_file.close()
