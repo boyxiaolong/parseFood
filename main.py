@@ -9,16 +9,19 @@ import os
 def get_num_vec_from_str(str):
     return re.findall('\d+', str)
 
-save_file = codecs.open("waimai_chaoren_json_data.txt", 'w', 'utf-8')
 ##软件园 高新区 桐梓林
 urls = ["http://waimaichaoren.com/restaurants/21886761/"
        , "http://waimaichaoren.com/restaurants/21876902/"
        , "http://waimaichaoren.com/restaurants/21876614/"]
-save_file.write('[')
 is_already_save_all = False
 max_dict_len = 4
+file_index = 1
 
 for url in urls:
+    save_file = codecs.open("zone_data" + str(file_index) + ".txt", 'w', 'utf-8')
+    save_file.write('[')
+    file_index = file_index + 1
+
     resp = requests.get(url)
     soup = bs4.BeautifulSoup(resp.text)
     mydivs = soup.findAll("div", { "class" : "restaurant-introduce fl" })
@@ -99,7 +102,7 @@ for url in urls:
         json_str = json.dumps(tmpMap, ensure_ascii=False)
         save_file.write(json_str)
         save_file.write(",")
-save_file.seek(-1, os.SEEK_END)
-save_file.truncate()
-save_file.write(']')
-save_file.close()
+    save_file.seek(-1, os.SEEK_END)
+    save_file.truncate()
+    save_file.write(']')
+    save_file.close()
